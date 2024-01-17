@@ -59,7 +59,7 @@ jobs:
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 968895271395.dkr.ecr.us-east-1.amazonaws.com          
           
           # Stop existing container
-          docker stop "$(docker ps -a -q) && docker rm $(docker ps -a -q)"
+          #docker stop "$(docker ps -a -q) && docker rm $(docker ps -a -q)"
           
           # Pull and run the new container
           docker pull 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest && sudo docker run -d --name library  -p 9195:9195 -e MYSQL_HOST=${{ secrets.MYSQL_HOST }} -e MYSQL_USER=${{ secrets.MYSQL_USER }} -e MYSQL_PASSWORD=${{secrets.MYSQL_PASSWORD}} 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest
