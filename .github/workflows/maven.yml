@@ -47,8 +47,7 @@ jobs:
     steps:
       - name: Deploy to EC2
         run: |
-          sudo aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 968895271395.dkr.ecr.us-east-1.amazonaws.com
-          
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 968895271395.dkr.ecr.us-east-1.amazonaws.com          
           # Stop existing container
           docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)
 
