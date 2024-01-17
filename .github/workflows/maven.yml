@@ -1,0 +1,60 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "main" ]
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Project
+      run: mvn clean install -DskipTests
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEYS }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEYS }}
+        aws-region: us-east-1
+
+    - name: Login to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      run: |
+        ECR_REGISTRY=$(aws ecr describe-repositories --repository-names library --query 'repositories[0].repositoryUri' --output text)
+        IMAGE_TAG=${GITHUB_SHA::8}
+
+        docker build -t $ECR_REGISTRY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY:$IMAGE_TAG
+
+        docker tag $ECR_REGISTRY:$IMAGE_TAG $ECR_REGISTRY:latest
+        docker push $ECR_REGISTRY:latest
+
+ 
+  deploy:
+    needs: build
+    runs-on: aws-ec2
+    steps:
+      - name: Deploy to EC2
+        run: |
+          aws ecr get-login-password --region us-east-1 | docker login --username hasnain --password-stdin 968895271395.dkr.ecr.us-east-1.amazonaws.com
+          
+          # Stop existing container
+          docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)
+
+          # Pull and run the new container
+          docker pull 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest && sudo docker run -d --name library  -p 9195:9195 -e MYSQL_HOST=${{ secrets.MYSQL_HOST }} -e MYSQL_USER=${{ secrets.MYSQL_USER }} -e MYSQL_PASSWORD=${{secrets.MYSQL_PASSWORD}} 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest
