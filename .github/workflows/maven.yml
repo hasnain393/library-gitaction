@@ -1,20 +1,21 @@
+[9:43 AM] Hasnain Ahmed Shaikh
 # This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
+ 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
 # separate terms of service, privacy policy, and support
 # documentation.
-
+ 
 name: Java CI with Maven
 on:
   push:
     branches: [ "main" ]
-
+ 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+ 
     steps:
     - uses: actions/checkout@v3
     - name: Build Project
@@ -26,22 +27,22 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEYS }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEYS }}
         aws-region: us-east-1
-
+ 
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v1
-
+ 
     - name: Build, tag, and push image to Amazon ECR
       run: |
         ECR_REGISTRY=$(aws ecr describe-repositories --repository-names library --query 'repositories[0].repositoryUri' --output text)
         IMAGE_TAG=${GITHUB_SHA::8}
-
+ 
         docker build -t $ECR_REGISTRY:$IMAGE_TAG .
         docker push $ECR_REGISTRY:$IMAGE_TAG
-
+ 
         docker tag $ECR_REGISTRY:$IMAGE_TAG $ECR_REGISTRY:latest
         docker push $ECR_REGISTRY:latest
-
  
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -53,22 +54,25 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEYS }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEYS }}
         aws-region: us-east-1
+ 
+    - name: Configure SSH key
+      uses: webfactory/ssh-agent@v0.4.1
+      with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
           
     - name: Deploy to EC2
       run: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 968895271395.dkr.ecr.us-east-1.amazonaws.com
-          
-          # Stop existing container
-    - name: Stop existing container  
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 968895271395.dkr.ecr.us-east-1.amazonaws.com'        
+    - name: Stop existing container 
       run: |
-          docker ps -q | xargs -r docker stop
-
-    - name: Remove existing container  
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'docker ps -q | xargs -r docker stop'     
+ 
+    - name: Remove existing container 
       run: |
-          docker ps -aq | xargs -r docker rm
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'docker ps -aq | xargs -r docker rm'
           
-          # Pull and run the new container
-    - name: Pull and Run new  container  
-      run: |   
-          docker pull 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest && sudo docker run -d --name library  -p 9195:9195 -e MYSQL_HOST=${{ secrets.MYSQL_HOST }} -e MYSQL_USER=${{ secrets.MYSQL_USER }} -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest
-          
+    - name: Pull and run the new container
+      run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'docker pull 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest && sudo docker run -d --name library  -p 9195:9195 -e MYSQL_HOST=${{ secrets.MYSQL_HOST }} -e MYSQL_USER=${{ secrets.MYSQL_USER }} -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest'   
+Building and testing Java with Maven - GitHub Docs
+You can create a continuous integration (CI) workflow in GitHub Actions to build and test your Java project with Maven.
