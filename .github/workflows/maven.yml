@@ -53,13 +53,18 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEYS }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEYS }}
         aws-region: us-east-1
-        
+
+    - name: Configure SSH key
+      uses: webfactory/ssh-agent@v0.4.1
+      with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          
     - name: Deploy to EC2
       run: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 968895271395.dkr.ecr.us-east-1.amazonaws.com          
-          
-          # Stop existing container
-          #docker stop "$(docker ps -a -q) && docker rm $(docker ps -a -q)"
-          
-          # Pull and run the new container
-          docker pull 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest && sudo docker run -d --name library  -p 9195:9195 -e MYSQL_HOST=${{ secrets.MYSQL_HOST }} -e MYSQL_USER=${{ secrets.MYSQL_USER }} -e MYSQL_PASSWORD=${{secrets.MYSQL_PASSWORD}} 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 968895271395.dkr.ecr.us-east-1.amazonaws.com'        
+    - name: Stop existing container 
+      run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)'        
+    - name: Pull and run the new container
+      run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'docker pull 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest && sudo docker run -d --name library  -p 9195:9195 -e MYSQL_HOST=${{ secrets.MYSQL_HOST }} -e MYSQL_USER=${{ secrets.MYSQL_USER }} -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest'   
