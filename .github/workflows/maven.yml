@@ -40,7 +40,6 @@ jobs:
 
         docker tag $ECR_REGISTRY:$IMAGE_TAG $ECR_REGISTRY:latest
         docker push $ECR_REGISTRY:latest
-
  
   deploy:
     needs: build
