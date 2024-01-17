@@ -73,5 +73,4 @@ jobs:
     - name: Pull and run the new container
       run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'docker pull 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest && sudo docker run -d --name library  -p 9195:9195 -e MYSQL_HOST=${{ secrets.MYSQL_HOST }} -e MYSQL_USER=${{ secrets.MYSQL_USER }} -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} 968895271395.dkr.ecr.us-east-1.amazonaws.com/library:latest'   
-Building and testing Java with Maven - GitHub Docs
-You can create a continuous integration (CI) workflow in GitHub Actions to build and test your Java project with Maven.
+
