@@ -45,7 +45,7 @@ jobs:
  
   deploy:
     needs: build
-    runs-on: [aws-ec2]
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy to EC2
         run: |
